@@ -3,29 +3,30 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
-var people = {};
+var rooms = {};
 
 app.use(express.static('static'));
-app.get('/', function(req, res) {
+app.get('*', function(req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
 io.on('connection', function(client) {
-  client.on('join', function(name) {
-    people[client.id] = name;
+  client.on('join', function(pathname) {
+    rooms[client.id] = pathname;
+    client.join(rooms[client.id]);
   });
 
   client.on('movement', function(coords) {
-    io.emit('movement', coords);
+    io.to(rooms[client.id]).emit('movement', coords);
   });
 
   client.on('clear', function() {
-    io.emit('clear')
+    io.to(rooms[client.id]).emit('clear')
   });
 
   client.on('disconnect', function() {
-    io.emit('leaving', people[client.id]);
-    delete people[client.id];
+    io.emit('leaving', rooms[client.id]);
+    delete rooms[client.id];
   });
 });
 

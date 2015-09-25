@@ -24,6 +24,7 @@
   <script type="text/javascript">
   $(document).ready(function() {
     var socket = io();
+    socket.emit('join', window.location.pathname);
     var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
 
