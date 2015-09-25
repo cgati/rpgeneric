@@ -1,0 +1,10 @@
+{
+  "name": "rpgeneric",
+  "version": "0.0.1",
+  "description": "RPGeneric - I don't even know what this is anymore",
+  "dependencies": {
+    "bootstrap": "^3.3.5",
+    "express": "^4.10.2",
+    "socket.io": "^1.3.6"
+  }
+}
