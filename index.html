@@ -58,6 +58,23 @@
       canvas.width = canvas.width;
       canvas.height = canvas.height;
     });
+
+	socket.on("persist", function(history) {
+		console.log(history);
+		var color;
+		var coords;
+		var cvsX;
+		var cvsY;
+		history.forEach(function(item) {
+			color = item.color;
+			coords = item.coords;
+			cvsX = coords.x;
+			cvsY = coords.y;
+
+			ctx.fillStyle = color;
+			ctx.fillRect(cvsX - 16, cvsY - 16, 32, 32);
+		});
+	});
   });
   </script>
 </body>
