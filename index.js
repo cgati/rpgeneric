@@ -33,7 +33,8 @@ io.on('connection', function(client) {
   });
 
   client.on('clear', function() {
-    io.to(rooms[client.id]).emit('clear')
+    io.to(rooms[client.id]).emit('clear');
+    room_drawing[rooms[client.id]] = [];
   });
 
   client.on('disconnect', function() {
