@@ -1,81 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <title>DrawWith</title>
-  <link rel="stylesheet" type="text/css" href="/css/reset.css">
-  <link rel="stylesheet" type="text/css" href="/css/main.css">
-  <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-  <meta name="theme-color" content="#82A43A">
+    <title>DrawWith</title>
+    <link rel="stylesheet" type="text/css" href="/css/reset.css">
+    <link rel="stylesheet" type="text/css" href="/css/main.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <meta name="theme-color" content="#82A43A">
 </head>
+
 <body>
-  <canvas id="canvas" width=500 height=500>Please update your browser to one which supports HTML5 canvas.</canvas>
-  <input class="color" id="color-picker" value="000000"></input>
-  <button id="clear">Clear</button>
-  <div>
+    <canvas id="canvas" width=500 height=500>Please update your browser to one which supports HTML5 canvas.</canvas>
+    <input class="color" id="color-picker" value="000000"></input>
+    <button id="clear">Clear</button>
+    <div>
         <a href="javascript:void(0);" onclick="toImage('window'); return false;">New Window</a>
         <a href="javascript:void(0);" onclick="toImage('download'); return false;">Download</a>
-  </div>
-  <script src="https://cdn.socket.io/socket.io-1.3.6.js"></script>
-  <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-  <script src="/javascript/movement.js"></script>
-  <script src="/javascript/save-image.js"></script>
-  <script src="/jscolor/jscolor.js"></script>
-  <script type="text/javascript">
-  $(document).ready(function() {
-    var socket = io();
-    socket.emit('join', window.location.pathname);
-    var canvas = document.getElementById("canvas");
-    var ctx = canvas.getContext("2d");
+    </div>
+    <script src="https://cdn.socket.io/socket.io-1.3.6.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="/javascript/movement.js"></script>
+    <script src="/javascript/save-image.js"></script>
+    <script src="/jscolor/jscolor.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var socket = io();
+            socket.emit('join', window.location.pathname);
+            var canvas = document.getElementById("canvas");
+            var ctx = canvas.getContext("2d");
 
-    canvas.addEventListener("click", relMouseCoords, false);
+            canvas.addEventListener("click", relMouseCoords, false);
 
-    $(canvas).on("click", function(event) {
-      coords = canvas.relMouseCoords(event);
-      canvasX = coords.x;
-      canvasY = coords.y;
-      color = $("#color-picker").css("background-color");
-      ctx.fillStyle = color;
-      ctx.fillRect(canvasX-16, canvasY-16, 32, 32);
-      var coors_color = {coords: coords, color: color};
-      socket.emit("movement", coors_color);
-    });
+            $(canvas).on("click", function(event) {
+                coords = canvas.relMouseCoords(event);
+                canvasX = coords.x;
+                canvasY = coords.y;
+                color = $("#color-picker").css("background-color");
+                ctx.fillStyle = color;
+                ctx.fillRect(canvasX - 16, canvasY - 16, 32, 32);
+                var coors_color = {
+                    coords: coords,
+                    color: color
+                };
+                socket.emit("movement", coors_color);
+            });
 
-    $("#clear").on("click", function(event) {
-      socket.emit("clear");
-    });
+            $("#clear").on("click", function(event) {
+                socket.emit("clear");
+            });
 
-    socket.on("movement", function(coors_color) {
-      coords = coors_color.coords;
-      color = coors_color.color;
-      canvasX = coords.x;
-      canvasY = coords.y;
-      ctx.fillStyle = color;
-      ctx.fillRect(canvasX-16, canvasY-16, 32, 32);
-    });
+            socket.on("movement", function(coors_color) {
+                coords = coors_color.coords;
+                color = coors_color.color;
+                canvasX = coords.x;
+                canvasY = coords.y;
+                ctx.fillStyle = color;
+                ctx.fillRect(canvasX - 16, canvasY - 16, 32, 32);
+            });
 
-    socket.on("clear", function() {
-      canvas.width = canvas.width;
-      canvas.height = canvas.height;
-    });
+            socket.on("clear", function() {
+                canvas.width = canvas.width;
+                canvas.height = canvas.height;
+            });
 
-	socket.on("persist", function(history) {
-		console.log(history);
-		var color;
-		var coords;
-		var cvsX;
-		var cvsY;
-		history.forEach(function(item) {
-			color = item.color;
-			coords = item.coords;
-			cvsX = coords.x;
-			cvsY = coords.y;
+            socket.on("persist", function(history) {
+                console.log(history);
+                var color;
+                var coords;
+                var cvsX;
+                var cvsY;
+                history.forEach(function(item) {
+                    color = item.color;
+                    coords = item.coords;
+                    cvsX = coords.x;
+                    cvsY = coords.y;
 
-			ctx.fillStyle = color;
-			ctx.fillRect(cvsX - 16, cvsY - 16, 32, 32);
-		});
-	});
-  });
-  </script>
+                    ctx.fillStyle = color;
+                    ctx.fillRect(cvsX - 16, cvsY - 16, 32, 32);
+                });
+            });
+        });
+    </script>
 </body>
+
 </html>

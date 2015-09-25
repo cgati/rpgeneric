@@ -1,6 +1,6 @@
 function toImage(returnType) {
     var dataURL = document.getElementById('canvas').toDataURL("image/png");
-    switch(returnType) {
+    switch (returnType) {
         case 'obj':
             var imgObj = new Image();
             imgObj.src = dataURL;
