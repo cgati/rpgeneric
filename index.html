@@ -12,6 +12,7 @@
 <body>
     <canvas id="canvas" width=500 height=500>Please update your browser to one which supports HTML5 canvas.</canvas>
     <input class="color" id="color-picker" value="000000"></input>
+    <button id="eyedropper">Eyedropper</button>
     <button id="clear">Clear</button>
     <div>
         <a href="javascript:void(0);" onclick="toImage('window'); return false;">New Window</a>
@@ -29,34 +30,83 @@
             socket.emit('join', window.location.pathname);
             var canvas = document.getElementById("canvas");
             var ctx = canvas.getContext("2d");
+            var paint;
+            var drawingQueue = new Array();
+            var clientTasks = new Array();
+            var toServer = new Array();
+            var clientID;
 
-            canvas.addEventListener("click", relMouseCoords, false);
+            socket.on("welcome", function(id) {
+                clientID = id;
+            });
 
-            $(canvas).on("click", function(event) {
+            $(canvas).on("mousedown", function(event) {
                 coords = canvas.relMouseCoords(event);
-                canvasX = coords.x;
-                canvasY = coords.y;
-                color = $("#color-picker").css("background-color");
-                ctx.fillStyle = color;
-                ctx.fillRect(canvasX - 16, canvasY - 16, 32, 32);
-                var coors_color = {
-                    coords: coords,
-                    color: color
+                var drawObj = {
+                    'id': clientID,
+                    'action': 'begin',
+                    'coords': {
+                        'x': coords.x,
+                        'y': coords.y
+                    },
+                    'color': $("#color-picker").css("background-color"),
+                    'penSize': 5,
+                    'discard': false
                 };
-                socket.emit("movement", coors_color);
+                paint = true;
+                drawingQueue.push(drawObj);
+            });
+
+            $(canvas).on("mousemove", function(event) {
+                if (paint) {
+                    coords = canvas.relMouseCoords(event);
+                    var drawObj = {
+                        'id': clientID,
+                        'action': 'continue',
+                        'coords': {
+                            'x': coords.x,
+                            'y': coords.y
+                        },
+                        'discard': false
+                    };
+                    drawingQueue.push(drawObj);
+                }
+            });
+
+            $(canvas).on("mouseup", function(event) {
+                paint = false;
+                coords = canvas.relMouseCoords(event);
+                var drawObj = {
+                    'id': clientID,
+                    'action': 'end',
+                    'coords': {
+                        'x': coords.x,
+                        'y': coords.y
+                    },
+                    'discard': false
+                };
+                drawingQueue.push(drawObj);
+            });
+
+            $(canvas).on("mouseleave", function(event) {
+                if (paint) {
+                    paint = false;
+                    coords = canvas.relMouseCoords(event);
+                    var drawObj = {
+                        'id': clientID,
+                        'action': 'end',
+                        'coords': {
+                            'x': coords.x,
+                            'y': coords.y
+                        },
+                        'discard': false
+                    };
+                    drawingQueue.push(drawObj);
+                }
             });
 
             $("#clear").on("click", function(event) {
                 socket.emit("clear");
-            });
-
-            socket.on("movement", function(coors_color) {
-                coords = coors_color.coords;
-                color = coors_color.color;
-                canvasX = coords.x;
-                canvasY = coords.y;
-                ctx.fillStyle = color;
-                ctx.fillRect(canvasX - 16, canvasY - 16, 32, 32);
             });
 
             socket.on("clear", function() {
@@ -65,21 +115,80 @@
             });
 
             socket.on("persist", function(history) {
-                console.log(history);
-                var color;
-                var coords;
-                var cvsX;
-                var cvsY;
-                history.forEach(function(item) {
-                    color = item.color;
-                    coords = item.coords;
-                    cvsX = coords.x;
-                    cvsY = coords.y;
+                drawingQueue = history;
+            });
 
-                    ctx.fillStyle = color;
-                    ctx.fillRect(cvsX - 16, cvsY - 16, 32, 32);
+            $("#eyedropper").on("click", function() {
+                var grabColor = true;
+                $(canvas).on("click", function(event) {
+                    if (grabColor) {
+                        var pickloc = canvas.relMouseCoords(event);
+                        var color = ctx.getImageData(pickloc.x, pickloc.y, 1, 1).data;
+                        var rgbColor;
+                        rgbColor = rgb(color[0], color[1], color[2]);
+                        $("#color-picker").css("background-color", rgbColor);
+                        grabColor = false;
+                    }
                 });
             });
+
+            function rgb(r, g, b) {
+                return ["rgb(", r, ",", g, ",", b, ")"].join("");
+            }
+
+            socket.on("path", function(list) {
+                var externalPath = new Array();
+                list.forEach(function(item) {
+                    if (item.id != clientID) {
+                        externalPath.push(item);
+                    }
+                });
+                drawingQueue.push.apply(drawingQueue, externalPath);
+            });
+
+            function draw() {
+                var task = drawingQueue.shift();
+                if (task) {
+                    if (task.action == 'begin') {
+                        clientTasks[task.id] = {
+                            'coords': task.coords,
+                            'color': task.color,
+                            'penSize': task.penSize
+                        };
+                    }
+                    var previous = clientTasks[task.id];
+                    var pastX = previous.coords.x;
+                    var pastY = previous.coords.y;
+                    var currX = task.coords.x;
+                    var currY = task.coords.y;
+                    ctx.strokeStyle = previous.color;
+                    ctx.lineJoin = "round";
+                    ctx.lineWidth = previous.penSize;
+                    ctx.beginPath();
+                    ctx.moveTo(pastX, pastY);
+                    ctx.lineTo(currX, currY);
+                    ctx.closePath();
+                    ctx.stroke();
+
+                    clientTasks[task.id].coords = task.coords;
+                    if (!task.discard) {
+                        task.discard = true;
+                        toServer.push(task);
+                    }
+                }
+            }
+
+            window.setInterval(draw, 0);
+
+            window.setInterval(function() {
+                if (toServer.length > 0) {
+                    var send = toServer;
+                    socket.emit("path", toServer);
+                    for (var i = 0; i < send.length; i++) {
+                        toServer.shift();
+                    }
+                }
+            }, 16);
         });
     </script>
 </body>
