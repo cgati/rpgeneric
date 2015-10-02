@@ -31,9 +31,9 @@
             var canvas = document.getElementById("canvas");
             var ctx = canvas.getContext("2d");
             var paint;
-            var drawingQueue = new Array();
-            var clientTasks = new Array();
-            var toServer = new Array();
+            var drawingQueue = [];
+            var clientTasks = [];
+            var toServer = [];
             var clientID;
 
             socket.on("welcome", function(id) {
@@ -137,7 +137,7 @@
             }
 
             socket.on("path", function(list) {
-                var externalPath = new Array();
+                var externalPath = [];
                 list.forEach(function(item) {
                     if (item.id != clientID) {
                         externalPath.push(item);

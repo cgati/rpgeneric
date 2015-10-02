@@ -35,7 +35,7 @@ io.on('connection', function(client) {
     client.on('path', function(list) {
         draw_history = room_drawing[rooms[client.id]];
         if (draw_history === undefined) {
-            draw_history = Array();
+            draw_history = [];
         }
         draw_history.push.apply(draw_history, list);
         room_drawing[rooms[client.id]] = draw_history;
