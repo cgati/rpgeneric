@@ -44,10 +44,6 @@ io.on('connection', function(client) {
         );
     });
 
-    client.on('draw', function(path) {
-        io.to(rooms[client.id]).emit('draw', path);
-    });
-
     client.on('clear', function() {
         io.to(rooms[client.id]).emit('clear');
         room_drawing[rooms[client.id]] = [];
