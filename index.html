@@ -106,12 +106,20 @@
             });
 
             $("#clear").on("click", function(event) {
-                socket.emit("clear");
-            });
-
-            socket.on("clear", function() {
                 canvas.width = canvas.width;
                 canvas.height = canvas.height;
+                var emptyCanvas = canvas.toDataURL();
+                socket.emit("clear", emptyCanvas);
+            });
+
+            socket.on("clear", function(emptyImage) {
+                canvas.width = canvas.width;
+                canvas.height = canvas.height;
+                var img = new Image;
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = emptyImage;
             });
 
             socket.on("persist", function(snapshot) {
@@ -231,7 +239,7 @@
                     window.clearInterval(drawInterval);
                     window.clearInterval(updateInterval);
                 } else {
-                    socket.emit("canvasSnapshot");
+                    socket.emit("canvasSnapshot", clientID);
                 }
             }
 

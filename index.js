@@ -5,6 +5,7 @@ var io = require('socket.io')(http);
 
 var rooms = {};
 var room_drawing = {};
+var clients = {};
 
 app.use(express.static('static'));
 
@@ -22,6 +23,8 @@ app.get('*', function(req, res) {
 });
 
 io.on('connection', function(client) {
+    console.info('New client connected (id=' + client.id + ').');
+    clients[client.id] = client;
     client.on('join', function(pathname) {
         rooms[client.id] = pathname;
         client.join(rooms[client.id]);
@@ -32,10 +35,10 @@ io.on('connection', function(client) {
         }
     });
 
-    client.on('canvasSnapshot', function() {
+    client.on('canvasSnapshot', function(clientID) {
         snapshot = room_drawing[rooms[client.id]];
-        if (snapshot !== undefined) {
-            io.to(rooms[client.id]).emit('persist', snapshot);
+        if (snapshot !== undefined && clients[clientID] !== undefined) {
+            clients[clientID].emit('persist', snapshot);
         }
     });
 
@@ -48,12 +51,14 @@ io.on('connection', function(client) {
         );
     });
 
-    client.on('clear', function() {
-        io.to(rooms[client.id]).emit('clear');
-        room_drawing[rooms[client.id]] = [];
+    client.on('clear', function(emptyImage) {
+        io.to(rooms[client.id]).emit('clear', emptyImage);
+        room_drawing[rooms[client.id]] = undefined;
     });
 
     client.on('disconnect', function() {
+        delete clients[client.id];
+        console.info('Client gone (id=' + client.id + ').');
         io.emit('leaving', rooms[client.id]);
         delete rooms[client.id];
     });
