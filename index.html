@@ -114,8 +114,15 @@
                 canvas.height = canvas.height;
             });
 
-            socket.on("persist", function(history) {
-                drawingQueue = history;
+            socket.on("persist", function(snapshot) {
+                var img = new Image;
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = snapshot;
+                drawingQueue = [];
+                drawInterval = window.setInterval(draw, 0);
+                updateInterval = window.setInterval(updatePath, 16);
             });
 
             $("#eyedropper").on("click", function() {
@@ -178,17 +185,63 @@
                 }
             }
 
-            window.setInterval(draw, 0);
-
-            window.setInterval(function() {
+            function updatePath() {
                 if (toServer.length > 0) {
+                    var currentCanvas = canvas.toDataURL();
                     var send = toServer;
-                    socket.emit("path", toServer);
+                    var pathObj = {
+                        "path": send,
+                        "snapshot": currentCanvas
+                    }
+                    socket.emit("path", pathObj);
                     for (var i = 0; i < send.length; i++) {
                         toServer.shift();
                     }
                 }
-            }, 16);
+            }
+
+            var drawInterval;
+            drawInterval = window.setInterval(draw, 0);
+
+            var updateInterval;
+            updateInterval = window.setInterval(updatePath, 16);
+
+            // Set the name of the hidden property and the change event for visibility
+            var hidden, visibilityChange;
+            if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+                hidden = "hidden";
+                visibilityChange = "visibilitychange";
+            } else if (typeof document.mozHidden !== "undefined") {
+                hidden = "mozHidden";
+                visibilityChange = "mozvisibilitychange";
+            } else if (typeof document.msHidden !== "undefined") {
+                hidden = "msHidden";
+                visibilityChange = "msvisibilitychange";
+            } else if (typeof document.webkitHidden !== "undefined") {
+                hidden = "webkitHidden";
+                visibilityChange = "webkitvisibilitychange";
+            }
+
+            // If the page leaves and then returns to focus
+            // we will apply the latest canvas view instead
+            // of potentially having a large draw queue to load
+            // and apply
+            function handleVisibilityChange() {
+                if (document[hidden]) {
+                    window.clearInterval(drawInterval);
+                    window.clearInterval(updateInterval);
+                } else {
+                    socket.emit("canvasSnapshot");
+                }
+            }
+
+            if (typeof document.addEventListener === "undefined" ||
+                typeof document[hidden] === "undefined") {
+                alert("This page requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
+            } else {
+                // Handle page visibility change
+                document.addEventListener(visibilityChange, handleVisibilityChange, false);
+            }
         });
     </script>
 </body>

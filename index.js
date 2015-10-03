@@ -26,21 +26,25 @@ io.on('connection', function(client) {
         rooms[client.id] = pathname;
         client.join(rooms[client.id]);
         io.to(client.id).emit('welcome', client.id);
-        draw_history = room_drawing[rooms[client.id]];
-        if (draw_history !== undefined) {
-            io.to(rooms[client.id]).emit('persist', draw_history);
+        snapshot = room_drawing[rooms[client.id]];
+        if (snapshot !== undefined) {
+            io.to(rooms[client.id]).emit('persist', snapshot);
         }
     });
 
-    client.on('path', function(list) {
-        draw_history = room_drawing[rooms[client.id]];
-        if (draw_history === undefined) {
-            draw_history = [];
+    client.on('canvasSnapshot', function() {
+        snapshot = room_drawing[rooms[client.id]];
+        if (snapshot !== undefined) {
+            io.to(rooms[client.id]).emit('persist', snapshot);
         }
-        draw_history.push.apply(draw_history, list);
-        room_drawing[rooms[client.id]] = draw_history;
+    });
+
+    client.on('path', function(pathSnap) {
+        var pathList = pathSnap.path;
+        var snapshot = pathSnap.snapshot;
+        room_drawing[rooms[client.id]] = snapshot;
         io.to(rooms[client.id]).emit(
-            'path', list
+            'path', pathList
         );
     });
 
